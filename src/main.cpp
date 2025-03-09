@@ -10,12 +10,52 @@
 #include "ImageBase.h"
 #include "Vec2.h"
 #include "Vec3.h"
-#include "Vec4.h"
 
 const int COMPACTNESS = 10; // m
 
 std::vector<Vec3> clusterColors;
 std::vector<Vec2> clusterCenters;
+
+
+
+// convert RGB color to CIELAB color. 
+// Do it by firt conveting to XYZ color space.
+  Vec3 RGBtoCIELAB(Vec3 color) { 
+
+    Vec3 RGB;
+    for (int i = 0; i < 3; i++) {
+        float temp = color[i] / 255.0f;
+        if (temp > 0.04045f) {
+            temp = powf((temp + 0.055f) / 1.055f, 2.4f);
+        } else {
+            temp /= 12.92f;
+        }
+        RGB[i] = temp * 100.0f;
+    }
+
+    float X = RGB[0] * 0.4124f + RGB[1] * 0.3576f + RGB[2] * 0.1805f;
+    float Y = RGB[0] * 0.2126f + RGB[1] * 0.7152f + RGB[2] * 0.0722f;
+    float Z = RGB[0] * 0.0193f + RGB[1] * 0.1192f + RGB[2] * 0.9505f;
+
+    X /= 95.047f;
+    Y /= 100.0f;
+    Z /= 108.883f;
+
+    Vec3 XYZ;
+    XYZ[0] = (X > 0.008856f) ? powf(X, 1.0f / 3.0f) : (7.787f * X) + (16.0f / 116.0f);
+    XYZ[1] = (Y > 0.008856f) ? powf(Y, 1.0f / 3.0f) : (7.787f * Y) + (16.0f / 116.0f);
+    XYZ[2] = (Z > 0.008856f) ? powf(Z, 1.0f / 3.0f) : (7.787f * Z) + (16.0f / 116.0f);
+
+    Vec3 LAB;
+    LAB[0] = (116.0f * XYZ[1]) - 16.0f;
+    LAB[1] = 500.0f * (XYZ[0] - XYZ[1]);
+    LAB[2] = 200.0f * (XYZ[1] - XYZ[2]);
+
+    return LAB;
+}
+
+
+
 
 Vec3 averageClusterColor(ImageBase& imIn, Vec2 center) {
   // TODO: Naive approach. Must be changed
@@ -61,8 +101,10 @@ void findInitialCenters(ImageBase& imIn, int S) {
 
 float colorDistance(ImageBase& imIn, Vec2 pixel, Vec2 center) {
   //TODO: This kinda works but should get the LAB distance instead
+
   int pixelX = pixel[0];
   int pixelY = pixel[1];
+
   int r1 = imIn[pixelX * 3][pixelY * 3 + 0];
   int g1 = imIn[pixelX * 3][pixelY * 3 + 1];
   int b1 = imIn[pixelX * 3][pixelY * 3 + 2];
