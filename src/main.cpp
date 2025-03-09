@@ -62,40 +62,45 @@ std::vector<Vec2> findInitialCenters(ImageBase& imIn, int S) {
 }
 
 float colorDistance(ImageBase& imIn, Vec2 pixel, Vec2 center) {
-  return 10;
-
-  // This is too slow
-  ImageBase imR = *imIn.getPlan(ImageBase::PLAN_R);
-  ImageBase imG = *imIn.getPlan(ImageBase::PLAN_G);
-  ImageBase imB = *imIn.getPlan(ImageBase::PLAN_B);
-
+  //TODO: This kinda works but should get the LAB distance instead
   int pixelX = pixel[0];
   int pixelY = pixel[1];
+  int r1 = imIn[pixelX * 3][pixelY * 3 + 0];
+  int g1 = imIn[pixelX * 3][pixelY * 3 + 1];
+  int b1 = imIn[pixelX * 3][pixelY * 3 + 2];
+
   int centerX = center[0];
   int centerY = center[1];
-  Vec3 pixelColor(imR[pixelX][pixelY], imG[pixelX][pixelY], imB[pixelX][pixelY]);
-  Vec3 centerColor(imR[centerX][centerY], imG[centerX][centerY], imB[centerX][centerY]);
+  int r2 = imIn[centerX * 3][centerY * 3 + 0];
+  int g2 = imIn[centerX * 3][centerY * 3 + 1];
+  int b2 = imIn[centerX * 3][centerY * 3 + 2];
 
-  Vec3 colorDistance = pixelColor - centerColor;
-  return colorDistance.length();
+  int dr = r1 - r2;
+  int dg = g1 - g2;
+  int db = b1 - b2;
+
+  return dr * dr + dg * dg + db * db;
 }
 
 void createClusters(ImageBase& imIn, std::vector<Vec2> centers, int S) {
   for (int y = 0; y < imIn.getHeight(); ++y) {
     for (int x = 0; x < imIn.getWidth(); ++x) {
       Vec2 pixel(x, y);
-      float bestDistance = 100.0;
+      float bestDistance = -1;
       int bestCenterIdx;
       Vec3 bestCenterColor;
-      for (int i = 0; i < centers.size(); i++) { // TODO:Optimize
+      for (int i = 0; i < centers.size(); i++) {
         Vec2 center = centers[i];
         float distanceXY = (center - pixel).length();
-        if (distanceXY > 2*S) continue;
-        float distanceC = colorDistance(imIn, pixel, center);
 
+        if (distanceXY > 2*S) {
+          continue;
+        } 
+
+        float distanceC = colorDistance(imIn, pixel, center);
         float distance = distanceC + (COMPACTNESS / S) * distanceXY;
 
-        if (distance < bestDistance) {
+        if (distance < bestDistance || bestDistance == -1) {
           bestDistance = distance;
           bestCenterIdx = i;
           
