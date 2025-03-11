@@ -106,9 +106,9 @@ Vec3 CIELABtoRGB(Vec3 color) {
   }
 
   Vec3 RGB;
-  RGB[0] = (int) var_R * 255;
-  RGB[1] = (int) var_G * 255;
-  RGB[2] = (int) var_B * 255;
+  RGB[0] = (int) (var_R * 255);
+  RGB[1] = (int) (var_G * 255);
+  RGB[2] = (int) (var_B * 255);
   return RGB;
 }
 
@@ -165,26 +165,20 @@ void findInitialCenters(ImageBase& imIn, int S) {
   }
 }
 
-float colorDistance(ImageBase& imIn, Vec2 pixel, Vec2 center) {
-  //TODO: This kinda works but should get the LAB distance instead
-
+Vec3 getPixelColor(ImageBase& imIn, Vec2 pixel) {
   int pixelX = pixel[0];
   int pixelY = pixel[1];
+  int r = imIn[pixelX * 3][pixelY * 3 + 0];
+  int g = imIn[pixelX * 3][pixelY * 3 + 1];
+  int b = imIn[pixelX * 3][pixelY * 3 + 2];
+  return Vec3(r, g, b);
+}
 
-  int r1 = imIn[pixelX * 3][pixelY * 3 + 0];
-  int g1 = imIn[pixelX * 3][pixelY * 3 + 1];
-  int b1 = imIn[pixelX * 3][pixelY * 3 + 2];
-
-  Vec3 colorRGB1(r1,g1,b1);
+float colorDistance(ImageBase& imIn, Vec2 pixel, Vec2 center) {
+  Vec3 colorRGB1 = getPixelColor(imIn, pixel);
   Vec3 colorLAB1 = RGBtoCIELAB(colorRGB1);
 
-  int centerX = center[0];
-  int centerY = center[1];
-  int r2 = imIn[centerX * 3][centerY * 3 + 0];
-  int g2 = imIn[centerX * 3][centerY * 3 + 1];
-  int b2 = imIn[centerX * 3][centerY * 3 + 2];
-
-  Vec3 colorRGB2(r2,g2,b2);
+  Vec3 colorRGB2 = getPixelColor(imIn, center);
   Vec3 colorLAB2 = RGBtoCIELAB(colorRGB2);
 
   float distance = (colorLAB2-colorLAB1).length();
@@ -192,44 +186,87 @@ float colorDistance(ImageBase& imIn, Vec2 pixel, Vec2 center) {
   return distance;
 }
 
-void createClusters(ImageBase& imIn, int S) {
-  for (int y = 0; y < imIn.getWidth(); ++y) {
-    for (int x = 0; x < imIn.getHeight(); ++x) {
-      Vec2 pixel(x, y);
-      float bestDistance = -1;
-      int bestCenterIdx;
-      for (int i = 0; i < clusterCenters.size(); i++) {
-        Vec2 center = clusterCenters[i];
-        if (std::abs(center[0] - x) > S || std::abs(center[1] - y) > S) {
-          continue;
-        } 
-        
-        float distanceXY = (center - pixel).length();
-        float distanceC = colorDistance(imIn, pixel, center);
-        float distance = distanceC + (COMPACTNESS / S) * distanceXY;
+int findClosestClusterCenter(ImageBase& imIn, Vec2 pixel, int S) {
+  float bestDistance = -1;
+  int bestCenterIdx;
+  for (int i = 0; i < clusterCenters.size(); i++) {
+    Vec2 center = clusterCenters[i];
+    if (std::abs(center[0] - pixel[0]) > S || std::abs(center[1] - pixel[1]) > S) {
+      continue;
+    } 
+    
+    float distanceXY = (center - pixel).length();
+    float distanceC = colorDistance(imIn, pixel, center);
+    float distance = distanceC + (COMPACTNESS / S) * distanceXY;
 
-        if (distance < bestDistance || bestDistance == -1) {
-          bestDistance = distance;
-          bestCenterIdx = i;
-        }
-      }
-      // This part must be changed
-      // ___________________ 
-
-      Vec2 center = clusterCenters[bestCenterIdx];
-      clusterCentersSums[bestCenterIdx] += center;
-
-      Vec3 clusterLAB = clusterLABs[bestCenterIdx];
-      clusterLABsSums[bestCenterIdx] += clusterLAB;
-
-      clusterCounts[bestCenterIdx]++;
-      
-      imIn[x * 3][y * 3 + 0] = clusterLAB[0];
-      imIn[x * 3][y * 3 + 1] = clusterLAB[1];
-      imIn[x * 3][y * 3 + 2] = clusterLAB[2];
-      // ___________________
+    if (distance < bestDistance || bestDistance == -1) {
+      bestDistance = distance;
+      bestCenterIdx = i;
     }
   }
+  return bestCenterIdx;
+}
+
+void createClusters(ImageBase& imIn, int S) {
+  float averageDistance;
+  int iterations = 0;
+  do {
+    for (int y = 0; y < imIn.getWidth(); ++y) {
+      for (int x = 0; x < imIn.getHeight(); ++x) {
+        Vec2 pixel(x, y);
+        int closestClusterId = findClosestClusterCenter(imIn, pixel, S);
+
+        Vec2 center = clusterCenters[closestClusterId];
+        Vec3 clusterLAB = clusterLABs[closestClusterId];
+
+        Vec3 pixelRGB = getPixelColor(imIn, pixel);
+        Vec3 pixelLAB = RGBtoCIELAB(pixelRGB);
+
+        clusterCentersSums[closestClusterId] += pixel;
+        clusterLABsSums[closestClusterId] += pixelLAB;
+
+        clusterCounts[closestClusterId]++;
+        
+        Vec3 colorRGB = CIELABtoRGB(clusterLAB);
+        imIn[x * 3][y * 3 + 0] = colorRGB[0];
+        imIn[x * 3][y * 3 + 1] = colorRGB[1];
+        imIn[x * 3][y * 3 + 2] = colorRGB[2];
+      }
+    }
+
+    int count = 0;
+    float sum = 0;
+    std::vector<Vec2> newClusterCenters;
+    std::vector<Vec3> newClusterLABs;
+    for (int c = 0; c < clusterCenters.size(); c++) {
+      Vec2 averageXY = clusterCentersSums[c] / clusterCounts[c];
+      Vec3 averageLAB = clusterLABsSums[c] / clusterCounts[c];
+      newClusterCenters.push_back(averageXY);
+      newClusterLABs.push_back(averageLAB);
+
+      Vec2 center = clusterCenters[c];
+      Vec3 lab = clusterLABs[c];
+
+
+      float distanceXY = (center - averageXY).length();
+      float distanceC =  (lab - averageLAB).length();
+      float distance = distanceC + (COMPACTNESS / S) * distanceXY;
+
+      sum += distance;
+      count++;
+    }
+    averageDistance = sum / count;
+
+
+    clusterCenters = newClusterCenters;
+    clusterLABs = newClusterLABs;
+    clusterCentersSums.clear();
+    clusterCounts.clear();
+    clusterLABsSums.clear();
+
+    iterations++;
+  } while (averageDistance > 0.1);
+  std::cout << "Iterations to convergence: " << iterations << std::endl;
 }
 
 void drawCenters(ImageBase& imIn) {
@@ -284,7 +321,7 @@ int main(int argc, char** argv) {
   }
 
   createClusters(imOut, S);
-  drawCenters(imOut);
+  // drawCenters(imOut);
   imOut.save(nameImgOur);
 
   return 0;
