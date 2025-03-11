@@ -55,6 +55,63 @@ Vec3 RGBtoCIELAB(Vec3 color) {
   return LAB;
 }
 
+Vec3 CIELABtoRGB(Vec3 color) { 
+  double var_Y = (color[0] + 16.0) / 116.0;
+  double var_X = color[1] / 500.0 + var_Y;
+  double var_Z = var_Y - color[2] / 200.0;
+
+  if (std::pow(var_Y, 3) > 0.008856) {
+    var_Y = std::pow(var_Y, 3);
+  } else {
+    var_Y = (var_Y - 16.0 / 116.0) / 7.787;
+  }
+
+  if (std::pow(var_X, 3) > 0.008856) {
+    var_X = std::pow(var_X, 3);
+  } else {
+    var_X = (var_X - 16.0 / 116.0) / 7.787;
+  }
+
+  if (std::pow(var_Z, 3) > 0.008856) {
+    var_Z = std::pow(var_Z, 3);
+  } else {
+    var_Z = (var_Z - 16.0 / 116.0) / 7.787;
+  }
+
+  Vec3 XYZ;
+  XYZ[0] = var_X * 95.047f / 100;
+  XYZ[1] = var_Y * 100.0f / 100;
+  XYZ[2] = var_Z * 108.883f / 100;
+
+  double var_R = XYZ[0] * 3.2406 + XYZ[1] * -1.5372 + XYZ[2] * -0.4986;
+  double var_G = XYZ[0] * -0.9689 + XYZ[1] * 1.8758 + XYZ[2] * 0.0415;
+  double var_B = XYZ[0] * 0.0557 + XYZ[1] * -0.2040 + XYZ[2] * 1.0570;
+
+  if (var_R > 0.0031308) {
+    var_R = 1.055 * std::pow(var_R, 1.0 / 2.4) - 0.055;
+  } else {
+    var_R = 12.92 * var_R;
+  }
+
+  if (var_G > 0.0031308) {
+    var_G = 1.055 * std::pow(var_G, 1.0 / 2.4) - 0.055;
+  } else {
+    var_G = 12.92 * var_G;
+  }
+
+  if (var_B > 0.0031308) {
+    var_B = 1.055 * std::pow(var_B, 1.0 / 2.4) - 0.055;
+  } else {
+    var_B = 12.92 * var_B;
+  }
+
+  Vec3 RGB;
+  RGB[0] = (int) var_R * 255;
+  RGB[1] = (int) var_G * 255;
+  RGB[2] = (int) var_B * 255;
+  return RGB;
+}
+
 Vec3 averageClusterColor(ImageBase& imIn, Vec2 center) {
   // TODO: Naive approach. Must be changed
   ImageBase imR = *imIn.getPlan(ImageBase::PLAN_R);
@@ -166,7 +223,6 @@ void createClusters(ImageBase& imIn, int S) {
       clusterLABsSums[bestCenterIdx] += clusterLAB;
 
       clusterCounts[bestCenterIdx]++;
-      std::cout << "A" << std::endl;
       
       imIn[x * 3][y * 3 + 0] = clusterLAB[0];
       imIn[x * 3][y * 3 + 1] = clusterLAB[1];
@@ -226,6 +282,7 @@ int main(int argc, char** argv) {
       imOut[x * 3][y * 3 + 2] = imIn[x * 3][y * 3 + 2];
     }
   }
+
   createClusters(imOut, S);
   drawCenters(imOut);
   imOut.save(nameImgOur);
