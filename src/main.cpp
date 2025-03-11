@@ -74,12 +74,15 @@ Vec3 averageClusterColor(ImageBase& imIn, Vec2 center) {
   int countB = 0;
   for (int j = y - 1; j <= y + 1; j++) {
     for (int i = x - 1; i <= x + 1; i++) {
-      sumR += imR[i][j];
-      sumG += imG[i][j];
-      sumB += imB[i][j];
-      countR++;
-      countG++;
-      countB++;
+      if(i<imR.getHeight() && i>=0 && j<imR.getWidth() && j>=0){
+        sumR += imR[i][j];
+        sumG += imG[i][j];
+        sumB += imB[i][j];
+        countR++;
+        countG++;
+        countB++;
+      }
+
     }
   }
 
@@ -88,8 +91,8 @@ Vec3 averageClusterColor(ImageBase& imIn, Vec2 center) {
 }
 
 void findInitialCenters(ImageBase& imIn, int S) {
-  for (int y = 0; y < imIn.getHeight(); ++y) {
-    for (int x = 0; x < imIn.getWidth(); ++x) {
+  for (int y = 0; y < imIn.getWidth(); ++y) {
+    for (int x = 0; x < imIn.getHeight(); ++x) {
       if (x % S == S / 2 && y % S == S / 2) {
         clusterCenters.push_back(Vec2(x, y));
         clusterColors.push_back(averageClusterColor(imIn, Vec2(x, y)));
@@ -123,8 +126,8 @@ float colorDistance(ImageBase& imIn, Vec2 pixel, Vec2 center) {
 }
 
 void createClusters(ImageBase& imIn, int S) {
-  for (int y = 0; y < imIn.getHeight(); ++y) {
-    for (int x = 0; x < imIn.getWidth(); ++x) {
+  for (int y = 0; y < imIn.getWidth(); ++y) {
+    for (int x = 0; x < imIn.getHeight(); ++x) {
       Vec2 pixel(x, y);
       float bestDistance = -1;
       int bestCenterIdx;
@@ -196,10 +199,9 @@ int main(int argc, char** argv) {
 
   int S = std::sqrt((imIn.getHeight() * imIn.getWidth()) / nSuperpixels); // Distance between centers
   findInitialCenters(imIn, S);
-
   ImageBase imOut(imIn.getWidth(), imIn.getHeight(), imIn.getColor());
-  for (int y = 0; y < imIn.getHeight(); ++y) {
-    for (int x = 0; x < imIn.getWidth(); ++x) {
+  for (int y = 0; y < imIn.getWidth(); ++y) {
+    for (int x = 0; x < imIn.getHeight(); ++x) {
       imOut[x * 3][y * 3 + 0] = imIn[x * 3][y * 3 + 0];
       imOut[x * 3][y * 3 + 1] = imIn[x * 3][y * 3 + 1];
       imOut[x * 3][y * 3 + 2] = imIn[x * 3][y * 3 + 2];
