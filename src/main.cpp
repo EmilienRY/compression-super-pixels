@@ -96,6 +96,7 @@ void findInitialCenters(ImageBase& imIn, int S) {
       if (x % S == S / 2 && y % S == S / 2) {
         clusterCenters.push_back(Vec2(x, y));
         clusterColors.push_back(averageClusterColor(imIn, Vec2(x, y)));
+
         // TODO: Adjust centers in 3x3 neighborhood
       }
     }
@@ -112,17 +113,21 @@ float colorDistance(ImageBase& imIn, Vec2 pixel, Vec2 center) {
   int g1 = imIn[pixelX * 3][pixelY * 3 + 1];
   int b1 = imIn[pixelX * 3][pixelY * 3 + 2];
 
+  Vec3 colorRGB1(r1,g1,b1);
+  Vec3 colorLAB1 = RGBtoCIELAB(colorRGB1);
+
   int centerX = center[0];
   int centerY = center[1];
   int r2 = imIn[centerX * 3][centerY * 3 + 0];
   int g2 = imIn[centerX * 3][centerY * 3 + 1];
   int b2 = imIn[centerX * 3][centerY * 3 + 2];
 
-  int dr = r1 - r2;
-  int dg = g1 - g2;
-  int db = b1 - b2;
+  Vec3 colorRGB2(r2,g2,b2);
+  Vec3 colorLAB2 = RGBtoCIELAB(colorRGB2);
 
-  return dr * dr + dg * dg + db * db;
+  float distance= (colorLAB2-colorLAB1).length();
+
+  return distance;
 }
 
 void createClusters(ImageBase& imIn, int S) {
@@ -208,7 +213,7 @@ int main(int argc, char** argv) {
     }
   }
   createClusters(imOut, S);
-  drawCenters(imOut);
+  //drawCenters(imOut);
   imOut.save(nameImgOur);
 
   return 0;
