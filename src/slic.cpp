@@ -321,7 +321,7 @@ int main(int argc, char** argv) {
   }
 
   createClusters(imOut, S);
-  // drawCenters(imOut);
+  //drawCenters(imOut);
   imOut.save(nameImgOur);
 
   return 0;
