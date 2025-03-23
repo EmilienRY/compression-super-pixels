@@ -5,14 +5,13 @@
 #include <cstring>
 #include <iostream>
 #include <vector>
+#include <queue>
 #include <map>
-#include <cmath>
-#include <numeric>  
 #include "ImageBase.h"
 #include "Vec2.h"
 #include "Vec3.h"
-using namespace std;
 
+using namespace std;
 
 class ElemStruct{
 
@@ -30,112 +29,11 @@ class ElemStruct{
     
 };
 
+struct SuperPixel {
+    vector<Vec2> pixels;  
+    Vec3 meanColor;       
+};
 
-
-void histo(ImageBase &imIn,std::vector<int>& histo){
-    int tab[256]={};
-    for(int x = 0; x < imIn.getHeight(); ++x)
-    for(int y = 0; y < imIn.getWidth(); ++y)
-    {
-        tab[imIn[x][y]]++;
-    }
-
-    for(int i=0;i<256;i++){
-        histo[i]=tab[i];
-    }	
-
-}
-
-int otsu(const std::vector<int>& histo, int totalPixels){
-
-    std::vector<double> proba(256,0);
-    for(int i=0;i<256;i++){
-        proba[i]=(double)histo[i]/(double)totalPixels;
-    }	
-
-    double moyenneImage=0;
-    for(double j=0.;j<256.;j++){
-        moyenneImage+=j*proba[j];
-        
-    }
-
-    double maxVarience=0;
-    int meilleurSeuil=0;
-
-    for(int t=1;t<255;t++){
-
-        double probC1= 0;
-        double moyC1=0;
-
-        for(int i=0;i<t;i++){
-            probC1+=proba[i];
-            moyC1+=(double)i*proba[i];
-
-        }
-        double probC2=1.-probC1;
-
-        double var= pow((moyenneImage*probC1-moyC1),2)/(probC1*probC2);
-
-        if(var>maxVarience){
-            maxVarience=var;
-            meilleurSeuil=t;
-        }
-    }
-
-    return meilleurSeuil;
-}
-
-
-
-
-void seuilGris( ImageBase &imIn, ImageBase &imOut, int S){
-    for(int x = 0; x < imIn.getHeight(); ++x)
-    for(int y = 0; y < imIn.getWidth(); ++y)
-    {
-        if (imIn[x][y] < S) 
-            imOut[x][y] = 0;
-        else imOut[x][y] = 255;
-    }
-}
-
-
-
-double PSNR( ImageBase &imOriginal,  ImageBase &imReconstructed) {
-
-	double eqm = 0.0;
-	int height = imOriginal.getHeight();
-	int width = imOriginal.getWidth();
-	int totalPixels = height * width;
-
-	for (int x = 0; x < height; ++x) {
-		for (int y = 0; y < width; ++y) {
-			int rOriginal = imOriginal[x * 3][y * 3 + 0];
-			int gOriginal = imOriginal[x * 3][y * 3 + 1];
-			int bOriginal = imOriginal[x * 3][y * 3 + 2];
-
-			int rReconstructed = imReconstructed[x * 3][y * 3 + 0];
-			int gReconstructed = imReconstructed[x * 3][y * 3 + 1];
-			int bReconstructed = imReconstructed[x * 3][y * 3 + 2];
-
-			eqm += pow(rOriginal - rReconstructed, 2);
-			eqm += pow(gOriginal - gReconstructed, 2);
-			eqm += pow(bOriginal - bReconstructed, 2);
-		}
-	}
-
-	eqm /= (totalPixels * 3); 
-
-	if (eqm == 0) {
-		return std::numeric_limits<double>::infinity(); 
-	}
-
-	double maxPixelValue = 255.0;
-	double psnr = 10 * log10((maxPixelValue * maxPixelValue) / eqm);
-	return psnr;
-}
-
-
-    
 
 void gadients(ImageBase &imIn,ImageBase &normeGradient){
     for(int x=0;x<imIn.getHeight();x++){
@@ -145,7 +43,7 @@ void gadients(ImageBase &imIn,ImageBase &normeGradient){
             float ver=(x+1)<imIn.getHeight() ? imIn[x+1][y]-imIn[x][y] : 0;
             float norme=sqrt(pow(hori,2)+pow(ver,2));
 
-            normeGradient[x][y]=clamp((int)(norme+128),0,255);;
+            normeGradient[x][y]=clamp((int)(norme),0,255);;
 
         }
     }
@@ -176,68 +74,158 @@ void filtreMoy(ImageBase &imIn,ImageBase &imFlou,ElemStruct &e){
     }
 }
 
-void convertPPMtoPGM(ImageBase &imIn,ImageBase &Y){
+
+
+void convertPPMtoPGM(ImageBase &imIn, ImageBase &Y) {
     for (int x = 0; x < imIn.getHeight(); ++x) {
         for (int y = 0; y < imIn.getWidth(); ++y) {
-            Y[x][y]=0.3*(float)imIn[x*3][y*3]+0.6*(float)imIn[x*3][y*3+1]+0.1*(float)imIn[x*3][y*3+2];       
+            Y[x][y] = 0.3 * imIn[x * 3][y * 3] + 
+                      0.6 * imIn[x * 3][y * 3 + 1] + 
+                      0.1 * imIn[x * 3][y * 3 + 2];       
+        }
+    }
+}
+
+vector<Vec2> findMarkers(ImageBase &gradient) {
+    vector<Vec2> markers;
+    int width = gradient.getWidth();
+    int height = gradient.getHeight();
+
+    for (int x = 1; x < height - 1; x++) {
+        for (int y = 1; y < width - 1; y++) {
+            int g = gradient[x][y];
+            if (g < gradient[x - 1][y] && g < gradient[x + 1][y] &&
+                g < gradient[x][y - 1] && g < gradient[x][y + 1]) {
+                markers.push_back(Vec2(x, y));
+            }
+        }
+    }
+    return markers;
+}
+
+void watershed(ImageBase &gradient, vector<Vec2> &markers, vector<vector<int>> &labels) {
+    int width = gradient.getWidth();
+    int height = gradient.getHeight();
+    int numRegions = markers.size();
+
+    queue<Vec2> q;
+    for (int i = 0; i < numRegions; i++) {
+        Vec2 m = markers[i];
+        labels[m[0]][m[1]] = i;
+        q.push(m);
+    }
+    ElemStruct directions(4, {{0, 1}, {0, -1}, {1, 0}, {-1, 0}}); 
+
+
+    while (!q.empty()) {
+        Vec2 current = q.front();
+        q.pop();
+        int label = labels[current[0]][current[1]];
+
+        for (int i=0;i<directions.taille;i++) {
+            int nx = current[0] + directions.modifCo[i][0];
+            int ny = current[1] + directions.modifCo[i][1];
+
+            if (nx >= 0 && nx < height && ny >= 0 && ny < width && labels[nx][ny] == -1) {
+                labels[nx][ny] = label;
+                q.push(Vec2(nx, ny));
+            }
+        }
+    }
+}
+
+void computeSuperPixelColors(ImageBase &imIn, vector<vector<int>> &labels, vector<SuperPixel> &superPixels) {
+    int width = imIn.getWidth();
+    int height = imIn.getHeight();
+    vector<int> pixelCount(superPixels.size(), 0);
+
+    for (int x = 0; x < height; x++) {
+        for (int y = 0; y < width; y++) {
+            int label = labels[x][y];
+            if (label != -1) {
+                Vec3 color(imIn[x * 3][y * 3], imIn[x * 3][y * 3 + 1], imIn[x * 3][y * 3 + 2]);
+                superPixels[label].meanColor += color;
+                pixelCount[label]++;
+            }
+        }
+    }
+
+    for (size_t i = 0; i < superPixels.size(); i++) {
+        if (pixelCount[i] > 0) {
+            superPixels[i].meanColor /= pixelCount[i];
+        }
+    }
+}
+
+void applySuperPixelColors(ImageBase &imOut, vector<vector<int>> &labels, vector<SuperPixel> &superPixels) {
+    int width = imOut.getWidth();
+    int height = imOut.getHeight();
+
+    for (int x = 0; x < height; x++) {
+        for (int y = 0; y < width; y++) {
+            int label = labels[x][y];
+            if (label != -1) {
+                Vec3 color = superPixels[label].meanColor;
+                imOut[x * 3][y * 3] = color[0];
+                imOut[x * 3][y * 3 + 1] = color[1];
+                imOut[x * 3][y * 3 + 2] = color[2];
+            }
         }
     }
 }
 
 
+ 
 
-void watershed(ImageBase &imIn,ImageBase &imgradient,ImageBase &imOut){
 
-
-    
-}
 
 
 
 
 int main(int argc, char** argv) {
-
-
+    if (argc != 2) {
+        printf("Usage: ./main vader.ppm\n");
+        return 1;
+    }
+    
     std::string cNameImg = argv[1];
-
+    
     std::string cNameImgIn = "images/" + cNameImg;
     std::string cNameImgOut = "output/" + cNameImg;
-
-    ImageBase imIn,imOut;
-
+    
     char nameImgIn[250];
     char nameImgOur[250];
-
     std::strcpy(nameImgIn, cNameImgIn.c_str());
     std::strcpy(nameImgOur, cNameImgOut.c_str());
+    
 
+    ImageBase imIn;
     imIn.load(nameImgIn);
+  
+    int width = imIn.getWidth();
+    int height = imIn.getHeight();
 
-    ImageBase grey(imIn.getWidth(),imIn.getHeight(),false);
-    ImageBase grad(imIn.getWidth(),imIn.getHeight(),false);
-    ImageBase greyFlou(imIn.getWidth(),imIn.getHeight(),false);
-    ImageBase gradSeuil(imIn.getWidth(),imIn.getHeight(),false);
+    ImageBase greyFlou(width, height, false);
+    ImageBase grey(width, height, false);
+    ImageBase gradient(width, height, false);
+    ImageBase imOut(width, height, true);
+  
+    convertPPMtoPGM(imIn, grey);
 
-    convertPPMtoPGM(imIn,grey);
-
-
-    ElemStruct cross(5,{{0,0},{0,1},{0,-1},{1,0},{-1,0}}); 
-
-    filtreMoy(grey,greyFlou,cross);
-
-    gadients(greyFlou,grad);
-
-    vector<int> histoVec(256,0);
-
-    histo(grad,histoVec);
-
-
-    seuilGris(grad,gradSeuil,163);
-
-    gradSeuil.save(nameImgOur);
-
-
-    watershed(imIn,grad,imOut);
-
+    ElemStruct cross(9, {{0, 0}, {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {1, 1}, {-1, 1}, {1, -1}, {-1, -1}}); 
+    filtreMoy(grey, greyFlou, cross);
+    gadients(greyFlou, gradient);
+    gradient.save("./output/gradient.pgm");
+  
+    vector<Vec2> markers = findMarkers(gradient);
+    vector<vector<int>> labels(height, vector<int>(width, -1));
+    vector<SuperPixel> superPixels(markers.size());
+  
+    watershed(gradient, markers, labels);
+    computeSuperPixelColors(imIn, labels, superPixels);
+    applySuperPixelColors(imOut, labels, superPixels);
+  
+    imOut.save(nameImgOur);
+  
     return 0;
 }
