@@ -11,7 +11,7 @@
 #include "Vec2.h"
 #include "Vec3.h"
 
-const int COMPACTNESS = 10; // m
+const float COMPACTNESS = 20; // m
 
 std::vector<Vec2> clusterCenters;
 std::vector<Vec3> clusterLABs;
@@ -113,7 +113,6 @@ Vec3 CIELABtoRGB(Vec3 color) {
 }
 
 Vec3 averageClusterColor(ImageBase& imIn, Vec2 center) {
-  // TODO: Naive approach. Must be changed
   ImageBase imR = *imIn.getPlan(ImageBase::PLAN_R);
   ImageBase imG = *imIn.getPlan(ImageBase::PLAN_G);
   ImageBase imB = *imIn.getPlan(ImageBase::PLAN_B);
@@ -189,6 +188,7 @@ float colorDistance(ImageBase& imIn, Vec2 pixel, Vec2 center) {
 int findClosestClusterCenter(ImageBase& imIn, Vec2 pixel, int S) {
   float bestDistance = -1;
   int bestCenterIdx;
+  bool first = true;
   for (int i = 0; i < clusterCenters.size(); i++) {
     Vec2 center = clusterCenters[i];
     if (std::abs(center[0] - pixel[0]) > S || std::abs(center[1] - pixel[1]) > S) {
@@ -197,9 +197,10 @@ int findClosestClusterCenter(ImageBase& imIn, Vec2 pixel, int S) {
     
     float distanceXY = (center - pixel).length();
     float distanceC = colorDistance(imIn, pixel, center);
-    float distance = distanceC + (COMPACTNESS / S) * distanceXY;
+    float distance = distanceC + (float) (COMPACTNESS / S) * distanceXY;
 
-    if (distance < bestDistance || bestDistance == -1) {
+    if (distance < bestDistance || first) {
+      first = false;
       bestDistance = distance;
       bestCenterIdx = i;
     }
@@ -236,21 +237,20 @@ void createClusters(ImageBase& imIn, int S) {
 
     int count = 0;
     float sum = 0;
-    std::vector<Vec2> newClusterCenters;
-    std::vector<Vec3> newClusterLABs;
+    std::vector<Vec2> newClusterCenters(clusterCenters.size());
+    std::vector<Vec3> newClusterLABs(clusterCenters.size());
     for (int c = 0; c < clusterCenters.size(); c++) {
       Vec2 averageXY = clusterCentersSums[c] / clusterCounts[c];
       Vec3 averageLAB = clusterLABsSums[c] / clusterCounts[c];
-      newClusterCenters.push_back(averageXY);
-      newClusterLABs.push_back(averageLAB);
+      newClusterCenters[c] = averageXY;
+      newClusterLABs[c] = averageLAB;
 
       Vec2 center = clusterCenters[c];
       Vec3 lab = clusterLABs[c];
 
-
       float distanceXY = (center - averageXY).length();
       float distanceC =  (lab - averageLAB).length();
-      float distance = distanceC + (COMPACTNESS / S) * distanceXY;
+      float distance = distanceC + (float) (COMPACTNESS / S) * distanceXY;
 
       sum += distance;
       count++;
@@ -321,7 +321,7 @@ int main(int argc, char** argv) {
   }
 
   createClusters(imOut, S);
-  //drawCenters(imOut);
+  // drawCenters(imOut);
   imOut.save(nameImgOur);
 
   return 0;
