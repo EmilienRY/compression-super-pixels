@@ -11,7 +11,7 @@
 #include "Vec2.h"
 #include "Vec3.h"
 
-const float COMPACTNESS = 20; // m
+const float COMPACTNESS = 1; // m
 
 std::vector<Vec2> clusterCenters;
 std::vector<Vec3> clusterLABs;

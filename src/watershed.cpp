@@ -279,7 +279,6 @@ void computeSuperPixelColors(ImageBase &imIn, vector<vector<int>> &labels, vecto
                 }
             }
 
-            // Merge with the closest neighbor
             if (bestNeighbor != -1) {
                 for (const Vec2 &pixel : superPixels[i].pixels) {
                     labels[pixel[0]][pixel[1]] = bestNeighbor;
@@ -350,13 +349,13 @@ int main(int argc, char** argv) {
     gradientSobel(greyFlou, gradient);
     gradient.save("./output/gradient.pgm");
   
-    vector<Vec2> markers = findMarkers(gradient,1);
+    vector<Vec2> markers = findMarkers(gradient,5);
     vector<vector<int>> labels(height, vector<int>(width, -1));
     vector<SuperPixel> superPixels(markers.size());
   
     watershed(gradient, markers, labels);
 
-    computeSuperPixelColors(imIn, labels, superPixels, 100);
+    computeSuperPixelColors(imIn, labels, superPixels, 1000);
 
     applySuperPixelColors(imOut, labels, superPixels);
 

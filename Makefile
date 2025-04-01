@@ -1,10 +1,10 @@
 CXX = g++
 CXXFLAGS = -Wall -Wextra -std=c++17
 
-SRC = src/ImageBase.cpp src/watershed.cpp
+SRC = src/ImageBase.cpp src/slic.cpp
 OBJ = $(SRC:.cpp=.o)
 
-TARGET = watershed
+TARGET = slic
 
 all: $(TARGET)
 
