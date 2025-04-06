@@ -3,7 +3,7 @@ CXXFLAGS = -Wall -Wextra -std=c++17
 
 SRC_A = src/ImageBase.cpp src/watershed.cpp
 SRC_B = src/ImageBase.cpp src/slic.cpp
-SRC_C = src/ImageBase.cpp src/compression.cpp
+SRC_C = src/ImageBase.cpp src/compressionPalette.cpp
 
 OBJ_A = $(SRC_A:.cpp=.o)
 OBJ_B = $(SRC_B:.cpp=.o)
