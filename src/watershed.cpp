@@ -314,12 +314,14 @@ void applySuperPixelColors(ImageBase &imOut, vector<vector<int>> &labels, vector
 }
 
 int main(int argc, char** argv) {
-    if (argc != 2) {
-        printf("Usage: ./main vader.ppm\n");
+    if (argc != 3) {
+        printf("Usage: ./main vader.ppm minSize\n");
         return 1;
     }
     
     std::string cNameImg = argv[1];
+
+    int minSize = std::atoi(argv[2]);
     
     std::string cNameImgIn = "images/" + cNameImg;
     std::string cNameImgOut = "output/watershed" + cNameImg;
@@ -355,7 +357,7 @@ int main(int argc, char** argv) {
   
     watershed(gradient, markers, labels);
 
-    computeSuperPixelColors(imIn, labels, superPixels, 1000);
+    computeSuperPixelColors(imIn, labels, superPixels, minSize);
 
     applySuperPixelColors(imOut, labels, superPixels);
 

@@ -266,7 +266,7 @@ void createClusters(ImageBase& imIn, int S) {
 
     iterations++;
     std::cout << "Calculating... (" << averageDistance << ")" << std::endl;
-  } while (averageDistance > 0.1);
+  } while (averageDistance > 0.1 && iterations<10 );
   std::cout << "Iterations to convergence: " << iterations << std::endl;
 }
 

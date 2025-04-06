@@ -11,7 +11,7 @@ OBJ_C = $(SRC_C:.cpp=.o)
 
 TARGET_A = watershed
 TARGET_B = slic
-TARGET_C = psnr
+TARGET_C = compressionPalette
 
 all: $(TARGET_A) $(TARGET_B) $(TARGET_C)
 
