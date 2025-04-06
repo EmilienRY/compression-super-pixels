@@ -361,5 +361,7 @@ int main(int argc, char** argv) {
 
     imOut.save(nameImgOur);
   
+    std::cout << "PSNR: " << ImageBase::PSNR(imIn, imOut) << std::endl;
+    
     return 0;
 }
