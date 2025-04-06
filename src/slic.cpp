@@ -11,7 +11,7 @@
 #include "Vec2.h"
 #include "Vec3.h"
 
-const float COMPACTNESS = 1; // m
+float COMPACTNESS = 1; // m
 
 std::vector<Vec2> clusterCenters;
 std::vector<Vec3> clusterLABs;
@@ -290,14 +290,15 @@ void drawCenters(ImageBase& imIn) {
 }
 
 int main(int argc, char** argv) {
-  if (argc != 3) {
-    printf("Usage: ./main vader.ppm 128\n");
+  if (argc != 4) {
+    printf("Usage: ./main vader.ppm 128 10\n");
     return 1;
   }
 
   int nSuperpixels;
   std::string cNameImg = argv[1];
   sscanf(argv[2], "%d", &nSuperpixels);
+  sscanf(argv[3], "%e", &COMPACTNESS);
 
   std::string cNameImgIn = "images/" + cNameImg;
   std::string cNameImgOut = "output/" + cNameImg;
@@ -324,6 +325,8 @@ int main(int argc, char** argv) {
   createClusters(imOut, S);
   // drawCenters(imOut);
   imOut.save(nameImgOur);
+
+  std::cout << "PSNR: " << ImageBase::PSNR(imIn, imOut) << std::endl;
 
   return 0;
 }

@@ -9,11 +9,8 @@
 #include <queue>
 #include <map>
 #include <cfloat>
+
 #include "ImageBase.h"
-#include "Vec2.h"
-#include "Vec3.h"
-
-
 
 double PSNR( ImageBase &imOriginal,  ImageBase &imReconstructed) {
 
@@ -81,6 +78,4 @@ int main(int argc, char** argv) {
     std::cout << "PSNR: " << psnr << " dB" << std::endl;
 
     return 0;
-
-
 }

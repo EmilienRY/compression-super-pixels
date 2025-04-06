@@ -17,7 +17,6 @@
 #include "image_ppm.h"
 
 
-
 ImageBase::ImageBase(void)
 {
 	isValid = false;
@@ -203,4 +202,38 @@ unsigned char *ImageBase::operator[](int l)
 	}
 	
 	return data+l*width;
+}
+
+
+double ImageBase::PSNR( ImageBase &imOriginal,  ImageBase &imReconstructed) {
+	double eqm = 0.0;
+	int height = imOriginal.getHeight();
+	int width = imOriginal.getWidth();
+	int totalPixels = height * width;
+
+	for (int x = 0; x < height; ++x) {
+			for (int y = 0; y < width; ++y) {
+					int rOriginal = imOriginal[x * 3][y * 3 + 0];
+					int gOriginal = imOriginal[x * 3][y * 3 + 1];
+					int bOriginal = imOriginal[x * 3][y * 3 + 2];
+
+					int rReconstructed = imReconstructed[x * 3][y * 3 + 0];
+					int gReconstructed = imReconstructed[x * 3][y * 3 + 1];
+					int bReconstructed = imReconstructed[x * 3][y * 3 + 2];
+
+					eqm += pow(rOriginal - rReconstructed, 2);
+					eqm += pow(gOriginal - gReconstructed, 2);
+					eqm += pow(bOriginal - bReconstructed, 2);
+			}
+	}
+
+	eqm /= (totalPixels * 3); 
+
+	if (eqm == 0) {
+			return 9999; 
+	}
+
+	double maxPixelValue = 255.0;
+	double psnr = 10 * log10((maxPixelValue * maxPixelValue) / eqm);
+	return psnr;
 }

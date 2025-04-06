@@ -45,6 +45,7 @@ public:
 	ImageBase(void);
 	ImageBase(int imWidth, int imHeight, bool isColor);
 	~ImageBase(void);
+	static double PSNR (ImageBase& imIn, ImageBase& imOut);
 	
 	///////////// Methodes
 protected:
