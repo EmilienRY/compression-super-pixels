@@ -291,7 +291,7 @@ void drawCenters(ImageBase& imIn) {
 
 int main(int argc, char** argv) {
   if (argc != 4) {
-    printf("Usage: ./main vader.ppm 128 10\n");
+    printf("Usage: ./slic vader.ppm 128 10\n");
     return 1;
   }
 
