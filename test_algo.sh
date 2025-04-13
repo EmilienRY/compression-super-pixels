@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Paths
-INPUT_IMAGE="astronaut.ppm"  # Input image
+INPUT_IMAGE="vader.ppm"  # Input image
 PALETTE_FILE="palette.json"     # Palette file
 
 PSNR_DAT_WATERSHED="output/psnrwater.dat" # File to store PSNR results
@@ -44,46 +44,46 @@ NBPIX_VALUES=(5 20 40 60 80 120 150 200 250 400 600 700 800 1000 1400 1700 2500 
 
 # -----------------------------------------------PALETTE--------------------------------------------------------------
 
-# Test watershed algorithm
-echo "Testing watershed algorithm..."
-for MIN_SIZE in "${MIN_SIZE_VALUES[@]}"; do
-    OUTPUT_IMAGE="watershed${INPUT_IMAGE}" # Watershed output format
-    ./watershed "$INPUT_IMAGE" "$MIN_SIZE" > /dev/null 2>&1
-    OUTPUT_HUFFMAN="huffman${INPUT_IMAGE}.huf" # Watershed output format
+# # Test watershed algorithm
+# echo "Testing watershed algorithm..."
+# for MIN_SIZE in "${MIN_SIZE_VALUES[@]}"; do
+#     OUTPUT_IMAGE="watershed${INPUT_IMAGE}" # Watershed output format
+#     ./watershed "$INPUT_IMAGE" "$MIN_SIZE" > /dev/null 2>&1
+#     OUTPUT_HUFFMAN="huffman${INPUT_IMAGE}.huf" # Watershed output format
 
 
-    # Compress the output
-    COMPRESSED_IMAGE="watershed_minSize_${MIN_SIZE}_compressed.pgm"
-    ./compressionPalette compress "$OUTPUT_IMAGE" "$COMPRESSED_IMAGE" "$PALETTE_FILE" > /dev/null 2>&1
+#     # Compress the output
+#     COMPRESSED_IMAGE="watershed_minSize_${MIN_SIZE}_compressed.pgm"
+#     ./compressionPalette compress "$OUTPUT_IMAGE" "$COMPRESSED_IMAGE" "$PALETTE_FILE" > /dev/null 2>&1
 
-   # Compress the output with huffman
-    ./huffman/huf c "output/${OUTPUT_IMAGE}" "output/${OUTPUT_HUFFMAN}" > /dev/null 2>&1
-    COMPRESSED_SIZE_HUFFMAN=$(stat -c%s "output/${OUTPUT_HUFFMAN}")
+#    # Compress the output with huffman
+#     ./huffman/huf c "output/${OUTPUT_IMAGE}" "output/${OUTPUT_HUFFMAN}" > /dev/null 2>&1
+#     COMPRESSED_SIZE_HUFFMAN=$(stat -c%s "output/${OUTPUT_HUFFMAN}")
 
-    # Decompress and compute PSNR
-    DECOMPRESSED_IMAGE="watershed_minSize_${MIN_SIZE}_decompressed.ppm"
-    ./compressionPalette decompress "$COMPRESSED_IMAGE" "$DECOMPRESSED_IMAGE" "$PALETTE_FILE" > /dev/null 2>&1
+#     # Decompress and compute PSNR
+#     DECOMPRESSED_IMAGE="watershed_minSize_${MIN_SIZE}_decompressed.ppm"
+#     ./compressionPalette decompress "$COMPRESSED_IMAGE" "$DECOMPRESSED_IMAGE" "$PALETTE_FILE" > /dev/null 2>&1
 
-    OUTPUT_HUFFMAN_DECOMP="decompHuff${INPUT_IMAGE}" 
+#     OUTPUT_HUFFMAN_DECOMP="decompHuff${INPUT_IMAGE}" 
 
-   # Decompress the output with huffman
-    ./huffman/huf d "output/${OUTPUT_HUFFMAN}" "output/${OUTPUT_HUFFMAN_DECOMP}" > /dev/null 2>&1
-
-
-    PSNRHUFF=$(./psnr $INPUT_IMAGE "${OUTPUT_HUFFMAN_DECOMP}")
+#    # Decompress the output with huffman
+#     ./huffman/huf d "output/${OUTPUT_HUFFMAN}" "output/${OUTPUT_HUFFMAN_DECOMP}" > /dev/null 2>&1
 
 
-    PSNR=$(./psnr $INPUT_IMAGE $DECOMPRESSED_IMAGE)
-    ORIGINAL_SIZE=$(stat -c%s "images/$INPUT_IMAGE")
-    COMPRESSED_SIZE=$(stat -c%s "output/$COMPRESSED_IMAGE")
-    COMPRESSION_RATIO=$(echo "scale=2; $ORIGINAL_SIZE/$COMPRESSED_SIZE" | bc)
-    COMPRESSION_RATIO_HUFFMAN=$(echo "scale=2;  $ORIGINAL_SIZE/$COMPRESSED_SIZE_HUFFMAN" | bc)
+#     PSNRHUFF=$(./psnr $INPUT_IMAGE "${OUTPUT_HUFFMAN_DECOMP}")
 
-    echo "$MIN_SIZE $PSNR" >> "$PSNR_DAT_WATERSHED"
-    echo "$MIN_SIZE $PSNRHUFF" >> "$PSNR_DAT_WATERSHED_HUFFMAN"
-    echo "$MIN_SIZE $COMPRESSION_RATIO_HUFFMAN" >> "$COMPRESSION_DAT_WATERSHED_HUFFMAN"
-    echo "$MIN_SIZE $COMPRESSION_RATIO" >> "$COMPRESSION_DAT_WATERSHED"
-done
+
+#     PSNR=$(./psnr $INPUT_IMAGE $DECOMPRESSED_IMAGE)
+#     ORIGINAL_SIZE=$(stat -c%s "images/$INPUT_IMAGE")
+#     COMPRESSED_SIZE=$(stat -c%s "output/$COMPRESSED_IMAGE")
+#     COMPRESSION_RATIO=$(echo "scale=2; $ORIGINAL_SIZE/$COMPRESSED_SIZE" | bc)
+#     COMPRESSION_RATIO_HUFFMAN=$(echo "scale=2;  $ORIGINAL_SIZE/$COMPRESSED_SIZE_HUFFMAN" | bc)
+
+#     echo "$MIN_SIZE $PSNR" >> "$PSNR_DAT_WATERSHED"
+#     echo "$MIN_SIZE $PSNRHUFF" >> "$PSNR_DAT_WATERSHED_HUFFMAN"
+#     echo "$MIN_SIZE $COMPRESSION_RATIO_HUFFMAN" >> "$COMPRESSION_DAT_WATERSHED_HUFFMAN"
+#     echo "$MIN_SIZE $COMPRESSION_RATIO" >> "$COMPRESSION_DAT_WATERSHED"
+# done
 
 # Test SLIC algorithm with compactness
 echo "Testing SLIC algorithm compactness..."

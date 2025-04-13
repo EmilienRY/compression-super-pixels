@@ -249,12 +249,10 @@ void computeSuperPixelColors(ImageBase &imIn, vector<vector<int>> &labels, vecto
         }
     }
 
-    // Merge small superpixels during computation
     for (size_t i = 0; i < superPixels.size(); i++) {
         if (pixelCount[i] < minSize && pixelCount[i] > 0) {
             map<int, double> colorDistances;
 
-            // Find the closest neighbor
             for (const Vec2 &pixel : superPixels[i].pixels) {
                 for (Vec2 dir : {Vec2(0, 1), Vec2(0, -1), Vec2(1, 0), Vec2(-1, 0)}) {
                     int nx = pixel[0] + dir[0];
@@ -344,10 +342,11 @@ int main(int argc, char** argv) {
     ImageBase imOut(width, height, true);
   
     convertPPMtoPGM(imIn, grey);
+    grey.save("./output/grey.pgm");
+    ElemStruct cross(5, {{0, 0}, {0, 1}, {0, -1}, {1, 0}, {-1, 0}}); 
 
-    ElemStruct cross(9, {{0, 0}, {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {1, 1}, {-1, 1}, {1, -1}, {-1, -1}}); 
     filtreGaussien(grey, greyFlou, 1);
-
+    greyFlou.save("./output/greyFlou.pgm");
     gradientSobel(greyFlou, gradient);
     gradient.save("./output/gradient.pgm");
   
