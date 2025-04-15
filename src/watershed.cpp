@@ -344,13 +344,13 @@ int main(int argc, char** argv) {
     convertPPMtoPGM(imIn, grey);
     grey.save("./output/grey.pgm");
     ElemStruct cross(5, {{0, 0}, {0, 1}, {0, -1}, {1, 0}, {-1, 0}}); 
-
     filtreGaussien(grey, greyFlou, 1);
     greyFlou.save("./output/greyFlou.pgm");
     gradientSobel(greyFlou, gradient);
+
     gradient.save("./output/gradient.pgm");
-  
-    vector<Vec2> markers = findMarkers(gradient,5);
+
+    vector<Vec2> markers = findMarkers(gradient,1);
     vector<vector<int>> labels(height, vector<int>(width, -1));
     vector<SuperPixel> superPixels(markers.size());
   

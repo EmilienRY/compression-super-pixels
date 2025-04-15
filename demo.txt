@@ -1,0 +1,10 @@
+
+./slic nature.ppm 1000 10
+
+./watershed nature.ppm 1
+
+./compressionPalette compress watershednature.ppm natureCompress.pgm palette.json
+
+./compressionPalette decompress natureCompress.pgm watershednaturedecompress.ppm palette.json
+
+./psnr nature.ppm watershednaturedecompress.ppm
